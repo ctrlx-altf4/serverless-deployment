@@ -1,0 +1,89 @@
+org: ctrlxaltf4
+app: plerion-serverless
+service: plerion-serverless
+frameworkVersion: "3"
+
+custom:
+  bucketName: plerion-product-image
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  httpApi:
+    cors: true
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${sls:stage}
+    BUCKET: ${self:custom.bucketName}
+    REGION: "us-east-1"
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+          Resource: "arn:aws:s3:::${self:custom.bucketName}/*"
+functions:
+  create:
+    handler: products/api.handler
+    events:
+      - httpApi:
+          path: /product
+          method: post
+  list:
+    handler: products/list.handler
+    events:
+      - httpApi:
+          path: /product
+          method: get
+  delete:
+    handler: products/delete.handler
+    events:
+      - httpApi:
+          path: /product/{id}
+          method: delete
+  generatePresignedUrl:
+    handler: products/generateUrl.handler
+    events:
+      - httpApi:
+          path: /generate-put-url
+          method: put
+resources:
+  Resources:
+    ProductTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+    ProductImageBucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        BucketName: plerion-product-image
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ["*"]
+              AllowedMethods: ["GET", "PUT"]
+              AllowedOrigins: ["*"]
