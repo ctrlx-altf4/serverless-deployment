@@ -35,7 +35,7 @@ provider:
           Resource: "arn:aws:s3:::${self:custom.bucketName}/*"
 functions:
   create:
-    handler: products/api.handler
+    handler: products/add.handler
     events:
       - httpApi:
           path: /product

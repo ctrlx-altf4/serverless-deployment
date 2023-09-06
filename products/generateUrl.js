@@ -33,8 +33,6 @@ module.exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers: {
-        "Access-Control-Allow-Origin": "*", // Required for CORS support to work
-        "Access-Control-Allow-Credentials": "*", // Required for cookies, authorization headers with HTTPS
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ url, key: _key, type: key }),
